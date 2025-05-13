@@ -1,5 +1,12 @@
-import React, { useState } from "react";
-import { MapPin, Filter, MessageSquare, Settings, User } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  MapPin,
+  Filter,
+  MessageSquare,
+  Settings,
+  User,
+  LogOut,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -7,10 +14,15 @@ import TravelerMap from "./Map/TravelerMap";
 import TravelerFilters from "./Filters/TravelerFilters";
 import ProfileCard from "./Profiles/ProfileCard";
 import UserOnboarding from "./Auth/UserOnboarding";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "./ui/use-toast";
 
 const Home = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const { toast } = useToast();
   const [selectedUser, setSelectedUser] = useState<null | {
     id: string;
     name: string;
@@ -21,24 +33,96 @@ const Home = () => {
     avatar: string;
   }>(null);
 
-  // Mock function to handle user authentication
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session) {
+          setIsAuthenticated(true);
+          fetchUserProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_IN" && session) {
+          setIsAuthenticated(true);
+          fetchUserProfile(session.user.id);
+        } else if (event === "SIGNED_OUT") {
+          setIsAuthenticated(false);
+          setUserProfile(null);
+        }
+      },
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (error) throw error;
+      setUserProfile(data);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  };
+
   const handleAuthentication = () => {
     setIsAuthenticated(true);
   };
 
-  // Mock function to handle user selection from map
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out",
+      });
+      setIsAuthenticated(false);
+      setUserProfile(null);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: error.message || "An error occurred while signing out",
+      });
+    }
+  };
+
+  // Function to handle user selection from map
   const handleUserSelect = (user: any) => {
     setSelectedUser(user);
   };
 
-  // Mock function to close profile card
+  // Function to close profile card
   const handleCloseProfile = () => {
     setSelectedUser(null);
   };
 
   return (
     <div className="flex flex-col h-screen w-full bg-background">
-      {!isAuthenticated ? (
+      {loading ? (
+        <div className="flex items-center justify-center h-full w-full">
+          <p>Loading...</p>
+        </div>
+      ) : !isAuthenticated ? (
         <div className="flex items-center justify-center h-full w-full">
           <UserOnboarding onComplete={handleAuthentication} />
         </div>
@@ -62,8 +146,15 @@ const Home = () => {
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar>
-                      <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=user123" />
-                      <AvatarFallback>U</AvatarFallback>
+                      <AvatarImage
+                        src={
+                          userProfile?.avatar_url ||
+                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile?.id || "user"}`
+                        }
+                      />
+                      <AvatarFallback>
+                        {userProfile?.full_name?.charAt(0) || "U"}
+                      </AvatarFallback>
                     </Avatar>
                   </Button>
                 </SheetTrigger>
@@ -74,7 +165,9 @@ const Home = () => {
                         <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=user123" />
                         <AvatarFallback>U</AvatarFallback>
                       </Avatar>
-                      <h2 className="text-xl font-semibold">Your Profile</h2>
+                      <h2 className="text-xl font-semibold">
+                        {userProfile?.full_name || "Your Profile"}
+                      </h2>
                     </div>
                     <div className="space-y-2">
                       <Button
@@ -94,7 +187,9 @@ const Home = () => {
                       <Button
                         variant="outline"
                         className="w-full justify-start text-destructive"
+                        onClick={handleSignOut}
                       >
+                        <LogOut className="mr-2 h-4 w-4" />
                         Log Out
                       </Button>
                     </div>
