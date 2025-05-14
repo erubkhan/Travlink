@@ -63,6 +63,7 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
     "Japan",
     "China",
     "Brazil",
+    "Pakistan",
   ];
   const availableInterests = [
     "Sightseeing",
