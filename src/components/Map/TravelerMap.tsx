@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MapPin, Navigation, ZoomIn, ZoomOut, Users } from "lucide-react";
+import { ZoomIn, ZoomOut, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -8,10 +8,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+  Marker,
+  ZoomableGroup,
+} from "react-simple-maps";
 
 interface TravelerMapProps {
   travelers?: Traveler[];
-  onSelectTraveler?: (traveler: Traveler) => void;
+  onUserSelect?: (user: any) => void;
   currentLocation?: { lat: number; lng: number };
   zoom?: number;
 }
@@ -25,6 +32,9 @@ interface Traveler {
   avatar?: string;
   status: "available" | "busy" | "offline";
 }
+
+// World map JSON data
+const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 const TravelerMap: React.FC<TravelerMapProps> = ({
   travelers = [
@@ -42,7 +52,7 @@ const TravelerMap: React.FC<TravelerMapProps> = ({
       name: "Jane Smith",
       nationality: "UK",
       languages: ["English", "French"],
-      location: { lat: 40.714776, lng: -74.003974 },
+      location: { lat: 51.507351, lng: -0.127758 },
       avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=jane",
       status: "busy",
     },
@@ -51,27 +61,49 @@ const TravelerMap: React.FC<TravelerMapProps> = ({
       name: "Carlos Rodriguez",
       nationality: "Spain",
       languages: ["Spanish", "English", "Portuguese"],
-      location: { lat: 40.715776, lng: -74.006974 },
+      location: { lat: 40.416775, lng: -3.70379 },
       avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=carlos",
       status: "available",
     },
+    {
+      id: "4",
+      name: "Yuki Tanaka",
+      nationality: "Japan",
+      languages: ["Japanese", "English"],
+      location: { lat: 35.689487, lng: 139.691706 },
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=yuki",
+      status: "available",
+    },
+    {
+      id: "5",
+      name: "Maria Silva",
+      nationality: "Brazil",
+      languages: ["Portuguese", "Spanish"],
+      location: { lat: -23.55052, lng: -46.633309 },
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=maria",
+      status: "busy",
+    },
+    {
+      id: "6",
+      name: "Ahmed Hassan",
+      nationality: "Egypt",
+      languages: ["Arabic", "English"],
+      location: { lat: 30.04442, lng: 31.235712 },
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=ahmed",
+      status: "offline",
+    },
   ],
-  onSelectTraveler = () => {},
+  onUserSelect = () => {},
   currentLocation = { lat: 40.712776, lng: -74.005974 },
-  zoom = 15,
+  zoom = 1,
 }) => {
   const [mapZoom, setMapZoom] = useState(zoom);
-  const [selectedCluster, setSelectedCluster] = useState<null | {
-    lat: number;
-    lng: number;
-    count: number;
-  }>(null);
+  const [selectedUser, setSelectedUser] = useState<Traveler | null>(null);
+  const [position, setPosition] = useState<[number, number]>([0, 0]);
+  const [isMapLoading, setIsMapLoading] = useState(true);
   const [clusters, setClusters] = useState<
     Array<{ lat: number; lng: number; travelers: Traveler[]; count: number }>
   >([]);
-
-  // Simulate map loading
-  const [isMapLoading, setIsMapLoading] = useState(true);
 
   useEffect(() => {
     // Simulate map loading delay
@@ -86,8 +118,7 @@ const TravelerMap: React.FC<TravelerMapProps> = ({
 
   const generateClusters = () => {
     // This is a simplified clustering algorithm for demonstration
-    // In a real app, you would use a proper clustering library
-    const clusterRadius = 0.001; // approximately 100 meters
+    const clusterRadius = 5; // degrees (roughly 500km at equator)
     const newClusters: Array<{
       lat: number;
       lng: number;
@@ -123,11 +154,16 @@ const TravelerMap: React.FC<TravelerMapProps> = ({
   };
 
   const handleZoomIn = () => {
-    setMapZoom((prev) => Math.min(prev + 1, 20));
+    setMapZoom((prev) => Math.min(prev + 1, 8));
   };
 
   const handleZoomOut = () => {
     setMapZoom((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleUserClick = (traveler: Traveler) => {
+    setSelectedUser(traveler);
+    onUserSelect(traveler);
   };
 
   const handleClusterClick = (cluster: {
@@ -138,17 +174,29 @@ const TravelerMap: React.FC<TravelerMapProps> = ({
   }) => {
     if (cluster.count === 1) {
       // If only one traveler in the cluster, select them directly
-      onSelectTraveler(cluster.travelers[0]);
+      onUserSelect(cluster.travelers[0]);
     } else {
-      // Otherwise, show the cluster details
-      setSelectedCluster(cluster);
+      // Otherwise, zoom in to the cluster location
+      setPosition([cluster.lng, cluster.lat]);
+      setMapZoom((prev) => Math.min(prev + 2, 8));
     }
   };
 
   const handleCurrentLocationClick = () => {
-    // In a real app, this would use the browser's geolocation API
-    console.log("Navigate to current location");
-    // Reset the map view to the current location
+    // Navigate to current location
+    setPosition([currentLocation.lng, currentLocation.lat]);
+    setMapZoom(4);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "available":
+        return "#10b981"; // green-500
+      case "busy":
+        return "#f59e0b"; // amber-500
+      default:
+        return "#9ca3af"; // gray-400
+    }
   };
 
   return (
@@ -162,11 +210,112 @@ const TravelerMap: React.FC<TravelerMapProps> = ({
         </div>
       ) : (
         <>
-          {/* Map background - in a real app, this would be replaced with an actual map library */}
-          <div
-            className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&q=50')] bg-cover bg-center"
-            style={{ filter: `brightness(${0.8 + mapZoom / 50})` }}
-          ></div>
+          {/* Earth Map */}
+          <div className="absolute inset-0 bg-[#f0f8ff]">
+            <ComposableMap
+              projection="geoEqualEarth"
+              style={{ width: "100%", height: "100%" }}
+            >
+              <ZoomableGroup
+                zoom={mapZoom}
+                center={position}
+                maxZoom={8}
+                onMoveEnd={({ zoom, coordinates }) => {
+                  setMapZoom(zoom);
+                  setPosition(coordinates as [number, number]);
+                }}
+              >
+                <Geographies geography={geoUrl}>
+                  {({ geographies }) =>
+                    geographies.map((geo) => (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill="#d1d5db" // gray-300
+                        stroke="#f9fafb" // gray-50
+                        strokeWidth={0.5}
+                        style={{
+                          default: { outline: "none" },
+                          hover: { outline: "none", fill: "#9ca3af" },
+                          pressed: { outline: "none" },
+                        }}
+                      />
+                    ))
+                  }
+                </Geographies>
+
+                {/* Clusters */}
+                {clusters.map((cluster, index) => (
+                  <Marker
+                    key={index}
+                    coordinates={[cluster.lng, cluster.lat]}
+                    onClick={() => handleClusterClick(cluster)}
+                  >
+                    {cluster.count === 1 ? (
+                      <g
+                        transform="translate(-12, -24)"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => handleUserClick(cluster.travelers[0])}
+                      >
+                        <circle
+                          r={8}
+                          fill="white"
+                          stroke={getStatusColor(cluster.travelers[0].status)}
+                          strokeWidth={2}
+                        />
+                        <image
+                          href={cluster.travelers[0].avatar}
+                          width={16}
+                          height={16}
+                          x={-8}
+                          y={-8}
+                          clipPath={`url(#circleClip-${cluster.travelers[0].id})`}
+                        />
+                        <defs>
+                          <clipPath
+                            id={`circleClip-${cluster.travelers[0].id}`}
+                          >
+                            <circle r={7} cx={0} cy={0} />
+                          </clipPath>
+                        </defs>
+                      </g>
+                    ) : (
+                      <g
+                        transform="translate(-12, -12)"
+                        style={{ cursor: "pointer" }}
+                      >
+                        <circle
+                          r={10 + Math.min(cluster.count, 10)}
+                          fill="#3b82f6" // blue-500
+                          opacity={0.8}
+                          stroke="white"
+                          strokeWidth={2}
+                        />
+                        <text
+                          textAnchor="middle"
+                          y={4}
+                          style={{
+                            fill: "white",
+                            fontSize: 10,
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {cluster.count}
+                        </text>
+                      </g>
+                    )}
+                  </Marker>
+                ))}
+
+                {/* Current location marker */}
+                <Marker
+                  coordinates={[currentLocation.lng, currentLocation.lat]}
+                >
+                  <circle r={4} fill="#3b82f6" stroke="white" strokeWidth={2} />
+                </Marker>
+              </ZoomableGroup>
+            </ComposableMap>
+          </div>
 
           {/* Map controls */}
           <div className="absolute top-4 right-4 flex flex-col gap-2">
@@ -221,146 +370,6 @@ const TravelerMap: React.FC<TravelerMapProps> = ({
               </Tooltip>
             </TooltipProvider>
           </div>
-
-          {/* Current location marker */}
-          <div
-            className="absolute"
-            style={{
-              left: `calc(50% + ${(currentLocation.lng - -74.005974) * 10000}px)`,
-              top: `calc(50% - ${(currentLocation.lat - 40.712776) * 10000}px)`,
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <div className="h-4 w-4 bg-blue-500 rounded-full animate-pulse border-2 border-white shadow-lg"></div>
-          </div>
-
-          {/* Traveler clusters */}
-          {clusters.map((cluster, index) => (
-            <div
-              key={index}
-              className="absolute cursor-pointer"
-              style={{
-                left: `calc(50% + ${(cluster.lng - -74.005974) * 10000}px)`,
-                top: `calc(50% - ${(cluster.lat - 40.712776) * 10000}px)`,
-                transform: "translate(-50%, -50%)",
-              }}
-              onClick={() => handleClusterClick(cluster)}
-            >
-              {cluster.count === 1 ? (
-                <div className="relative">
-                  <MapPin
-                    className={`h-8 w-8 ${
-                      cluster.travelers[0].status === "available"
-                        ? "text-green-500"
-                        : cluster.travelers[0].status === "busy"
-                          ? "text-amber-500"
-                          : "text-gray-400"
-                    }`}
-                    strokeWidth={2}
-                  />
-                  <div
-                    className="absolute bottom-0 right-0 h-5 w-5 rounded-full bg-white overflow-hidden border-2 border-white"
-                    style={{ transform: "translate(25%, 0%)" }}
-                  >
-                    <img
-                      src={
-                        cluster.travelers[0].avatar ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${cluster.travelers[0].id}`
-                      }
-                      alt={cluster.travelers[0].name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="relative flex items-center justify-center h-10 w-10 rounded-full bg-primary text-white font-medium shadow-lg border-2 border-white">
-                  <Users className="h-4 w-4 absolute" />
-                  <span className="text-xs font-bold">{cluster.count}</span>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* Selected cluster popup */}
-          {selectedCluster && (
-            <div
-              className="absolute bg-white rounded-lg shadow-lg p-3 z-10 w-64"
-              style={{
-                left: `calc(50% + ${(selectedCluster.lng - -74.005974) * 10000}px)`,
-                top: `calc(50% - ${(selectedCluster.lat - 40.712776) * 10000 + 60}px)`,
-                transform: "translate(-50%, -100%)",
-              }}
-            >
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium">
-                  {selectedCluster.count} Travelers Nearby
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedCluster(null)}
-                >
-                  ×
-                </Button>
-              </div>
-              <div className="max-h-40 overflow-y-auto">
-                {clusters
-                  .find(
-                    (c) =>
-                      c.lat === selectedCluster.lat &&
-                      c.lng === selectedCluster.lng,
-                  )
-                  ?.travelers.map((traveler) => (
-                    <div
-                      key={traveler.id}
-                      className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md cursor-pointer"
-                      onClick={() => {
-                        onSelectTraveler(traveler);
-                        setSelectedCluster(null);
-                      }}
-                    >
-                      <div className="relative">
-                        <div className="h-8 w-8 rounded-full overflow-hidden">
-                          <img
-                            src={
-                              traveler.avatar ||
-                              `https://api.dicebear.com/7.x/avataaars/svg?seed=${traveler.id}`
-                            }
-                            alt={traveler.name}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                        <div
-                          className={`absolute bottom-0 right-0 h-2 w-2 rounded-full border border-white ${
-                            traveler.status === "available"
-                              ? "bg-green-500"
-                              : traveler.status === "busy"
-                                ? "bg-amber-500"
-                                : "bg-gray-400"
-                          }`}
-                        ></div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{traveler.name}</p>
-                        <div className="flex gap-1">
-                          <Badge variant="outline" className="text-xs py-0 h-4">
-                            {traveler.nationality}
-                          </Badge>
-                          {traveler.languages[0] && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs py-0 h-4"
-                            >
-                              {traveler.languages[0]}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>
