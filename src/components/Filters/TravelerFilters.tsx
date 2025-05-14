@@ -35,6 +35,7 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
   // Sample data - in a real app, these would come from an API
   // Fetch languages from API
   const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+  const [availableNationalities, setAvailableNationalities] = useState<string[]>([]);
 
   useEffect(() => {
     // Replace this URL with your real API endpoint
@@ -43,28 +44,25 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
       .then(data => {
       // Extract unique languages
       const langSet = new Set<string>();
+      // Extract unique nationalities (country demonyms or names)
+      const nationalitySet = new Set<string>();
+
       data.forEach((country: any) => {
         if (country.languages) {
           Object.values(country.languages).forEach((lang: any) => langSet.add(lang));
         }
+        // Nationalities (demonyms or country names)
+        if (country.demonyms && country.demonyms.eng) {
+          nationalitySet.add(country.demonyms.eng.m);
+        } else if (country.name && country.name.common) {
+          nationalitySet.add(country.name.common);
+        }
         });
       setAvailableLanguages(Array.from(langSet).sort());
+      setAvailableNationalities(Array.from(nationalitySet).sort());
     });
   }, []);
 
-  const availableNationalities = [
-    "USA",
-    "UK",
-    "Canada",
-    "Australia",
-    "Germany",
-    "France",
-    "Spain",
-    "Japan",
-    "China",
-    "Brazil",
-    "Pakistan",
-  ];
   const availableInterests = [
     "Sightseeing",
     "Food",
