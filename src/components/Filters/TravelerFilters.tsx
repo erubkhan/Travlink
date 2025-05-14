@@ -1,20 +1,14 @@
-import React, { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
-import { Badge } from "@/components/ui/badge";
 import { ChevronDown, Filter, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+
 
 interface TravelerFiltersProps {
   onFilterChange?: (filters: FilterValues) => void;
@@ -39,16 +33,25 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
   });
 
   // Sample data - in a real app, these would come from an API
-  const availableLanguages = [
-    "English",
-    "Spanish",
-    "French",
-    "German",
-    "Chinese",
-    "Japanese",
-    "Korean",
-    "Arabic",
-  ];
+  // Fetch languages from API
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Replace this URL with your real API endpoint
+    fetch("https://restcountries.com/v3.1/all")
+      .then(res => res.json())
+      .then(data => {
+      // Extract unique languages
+      const langSet = new Set<string>();
+      data.forEach((country: any) => {
+        if (country.languages) {
+          Object.values(country.languages).forEach((lang: any) => langSet.add(lang));
+        }
+        });
+      setAvailableLanguages(Array.from(langSet).sort());
+    });
+  }, []);
+
   const availableNationalities = [
     "USA",
     "UK",
