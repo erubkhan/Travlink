@@ -26,7 +26,7 @@ export interface FilterValues {
 }
 
 const TravelerFilters: React.FC<TravelerFiltersProps> = ({
-  onFilterChange = () => { },
+  onFilterChange = () => {},
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState<FilterValues>({
@@ -39,8 +39,12 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
   // Sample data - in a real app, these would come from an API
   // Fetch languages from API
   const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
-  const [availableNationalities, setAvailableNationalities] = useState<string[]>([]);
-  const [availableInterests, setAvailableInterests] = useState<InterestCategory[]>([]);
+  const [availableNationalities, setAvailableNationalities] = useState<
+    string[]
+  >([]);
+  const [availableInterests, setAvailableInterests] = useState<
+    InterestCategory[]
+  >([]);
 
   useEffect(() => {
     fetch("https://restcountries.com/v3.1/all")
@@ -69,14 +73,32 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
       });
   }, []);
 
-  // For interests category 
+  // For interests category
   useEffect(() => {
     fetch("http://localhost:3001/api/interests")
       .then((res) => res.json())
       .then((data) => {
+        console.log("Interests data received:", data);
         setAvailableInterests(data.interests || []);
       })
-      .catch(() => setAvailableInterests([]));
+      .catch((error) => {
+        console.error("Error fetching interests:", error);
+        // Fallback data if API fails
+        setAvailableInterests([
+          {
+            category: "Outdoor",
+            items: ["Hiking", "Sightseeing", "Photography", "halulu"],
+          },
+          {
+            category: "Culture",
+            items: ["Museums", "Local Culture"],
+          },
+          {
+            category: "Food & Drink",
+            items: ["Food", "Nightlife", "Shopping"],
+          },
+        ]);
+      });
   }, []);
 
   const handleFilterChange = (key: keyof FilterValues, value: any) => {
@@ -121,7 +143,7 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
     (filters.stayDuration[0] > 1 || filters.stayDuration[1] < 30 ? 1 : 0);
 
   console.log("Available Interests:", availableInterests);
-  
+
   return (
     <div className="w-full bg-background border-b border-border shadow-sm">
       <div className="container mx-auto px-4 py-3">
@@ -262,22 +284,57 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
                     <ChevronDown size={16} />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
+                <PopoverContent
+                  className="w-full p-0"
+                  align="start"
+                  side="bottom"
+                  sideOffset={5}
+                >
                   <div className="p-2 max-h-60 overflow-auto">
-                    {availableInterests.map((cat) => (
-                      <div key={cat.category}>
-                        <div className="font-semibold text-xs text-muted-foreground mb-1 mt-2">{cat.category}</div>
-                        {cat.items.map((interest) => (
-                          <div
-                            key={interest}
-                            className="flex items-center p-2 hover:bg-accent rounded-md cursor-pointer"
-                            onClick={() => addFilter("interests", interest)}
-                          >
-                            {interest}
+                    {availableInterests && availableInterests.length > 0 ? (
+                      availableInterests.map((cat) => (
+                        <div key={cat.category} className="mb-3">
+                          <div className="font-semibold text-sm px-2 py-1 bg-muted text-foreground">
+                            {cat.category}
                           </div>
-                        ))}
+                          {cat.items.map((interest) => (
+                            <div
+                              key={interest}
+                              className="flex items-center p-2 hover:bg-accent rounded-md cursor-pointer"
+                              onClick={() => addFilter("interests", interest)}
+                            >
+                              <div className="flex items-center w-full">
+                                <div
+                                  className={`w-4 h-4 mr-2 rounded-sm border ${filters.interests.includes(interest) ? "bg-primary border-primary" : "border-input"} flex items-center justify-center`}
+                                >
+                                  {filters.interests.includes(interest) && (
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      width="10"
+                                      height="10"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="3"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className="text-white"
+                                    >
+                                      <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                  )}
+                                </div>
+                                <span>{interest}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-muted-foreground">
+                        No interests available
                       </div>
-                    ))}
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>
