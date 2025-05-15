@@ -120,6 +120,8 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
     filters.interests.length +
     (filters.stayDuration[0] > 1 || filters.stayDuration[1] < 30 ? 1 : 0);
 
+  console.log("Available Interests:", availableInterests);
+  
   return (
     <div className="w-full bg-background border-b border-border shadow-sm">
       <div className="container mx-auto px-4 py-3">
