@@ -75,27 +75,97 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
 
   // For interests category
   useEffect(() => {
-    fetch("http://localhost:3001/api/interests")
-      .then((res) => res.json())
+    // Use the correct URL for the API in the Tempo environment
+    const apiUrl = window.location.hostname.includes("tempo-dev.app")
+      ? `${window.location.protocol}//${window.location.hostname}:3001/api/interests`
+      : "http://localhost:3001/api/interests";
+
+    console.log("Fetching interests from:", apiUrl);
+
+    fetch(apiUrl, { mode: "cors" })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         console.log("Interests data received:", data);
         setAvailableInterests(data.interests || []);
       })
       .catch((error) => {
         console.error("Error fetching interests:", error);
-        // Fallback data if API fails
+        // Use the hardcoded data from the server.js file
         setAvailableInterests([
           {
-            category: "Outdoor",
-            items: ["Hiking", "Sightseeing", "Photography", "halulu"],
+            category: "Travel and Adventure",
+            items: [
+              "Backpacking",
+              "Camping",
+              "Solo travel",
+              "Group tours",
+              "Hiking",
+              "Road trips",
+              "Luxury travel",
+              "Budget travel",
+              "Local food exploration",
+              "Urban exploring",
+              "World heritage sites",
+              "Digital nomad life",
+            ],
           },
           {
-            category: "Culture",
-            items: ["Museums", "Local Culture"],
+            category: "Culture & Language",
+            items: [
+              "Multicultural experiences",
+              "History & heritage",
+              "Art museums",
+              "Festivals",
+              "Folklore & traditions",
+              "Local crafts",
+              "Learning new languages",
+            ],
           },
           {
             category: "Food & Drink",
-            items: ["Food", "Nightlife", "Shopping"],
+            items: [
+              "Street food",
+              "Vegan cuisine",
+              "Cooking classes",
+              "Food blogging",
+              "Farm-to-table",
+              "Global cuisines",
+              "Baking",
+            ],
+          },
+          {
+            category: "Arts & Creativity",
+            items: [
+              "Painting",
+              "Photography",
+              "Film making",
+              "Drawing",
+              "Music production",
+              "Interior design",
+              "Fashion styling",
+              "Poetry",
+              "Graphic design",
+              "Animation",
+            ],
+          },
+          {
+            category: "Learning & Personal Growth",
+            items: [
+              "Reading",
+              "Podcasts",
+              "Public speaking",
+              "Journaling",
+              "Philosophy",
+              "Psychology",
+              "Self-development",
+              "Meditation",
+              "Spirituality",
+            ],
           },
         ]);
       });
@@ -246,7 +316,29 @@ const TravelerFilters: React.FC<TravelerFiltersProps> = ({
                         className="flex items-center p-2 hover:bg-accent rounded-md cursor-pointer"
                         onClick={() => addFilter("nationalities", nationality)}
                       >
-                        {nationality}
+                        <div className="flex items-center w-full">
+                          <div
+                            className={`w-4 h-4 mr-2 rounded-sm border ${filters.nationalities.includes(nationality) ? "bg-primary border-primary" : "border-input"} flex items-center justify-center`}
+                          >
+                            {filters.nationalities.includes(nationality) && (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="10"
+                                height="10"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="text-white"
+                              >
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            )}
+                          </div>
+                          <span>{nationality}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
