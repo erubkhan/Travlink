@@ -124,23 +124,25 @@ const UserOnboarding = ({
 
       if (data.user) {
         //Check if profile exists
-        const { data: profile, error: profileError } = await supabase 
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select('*')
+          .select("*")
           .eq("id", data.user.id)
           .single();
 
-        if (profileError && profileError.code !== "PGRST116") throw profileError;
-            
+        if (profileError && profileError.code !== "PGRST116")
+          throw profileError;
+
         if (!profile) {
           // Profile does not exist, move to profile creation
           setStep(2);
         } else {
           toast({
-          title: "Welcome back",
-          description: "You have successfully signed in",
-        });
-        onComplete();
+            title: "Welcome back",
+            description: "You have successfully signed in",
+          });
+          onComplete();
+        }
       }
     } catch (error: any) {
       setError(error.message || "Invalid email or password");

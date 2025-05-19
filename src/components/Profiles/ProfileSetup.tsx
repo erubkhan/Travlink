@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -22,6 +22,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 
 interface ProfileSetupProps {
   onComplete?: () => void;
@@ -40,6 +42,10 @@ const ProfileSetup = ({ onComplete = () => {} }: ProfileSetupProps) => {
     interests: [] as string[],
     duration: "",
     availability: "",
+    currentLocation: {
+      city: "",
+      country: "",
+    },
     privacySettings: {
       showLocation: false,
       appearOffline: false,
@@ -49,6 +55,49 @@ const ProfileSetup = ({ onComplete = () => {} }: ProfileSetupProps) => {
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
+
+  // Load user data if available
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          // Try to get existing profile data
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+
+          if (profile) {
+            setUserData({
+              fullName: profile.full_name || "",
+              nationality: profile.nationality || "",
+              languages: profile.languages || "",
+              interests: profile.interests || [],
+              duration: profile.duration_of_stay || "",
+              availability: profile.availability_status || "",
+              currentLocation: {
+                city: profile.current_city || "",
+                country: profile.current_country || "",
+              },
+              privacySettings: {
+                showLocation: profile.show_location || false,
+                appearOffline: profile.appear_offline || false,
+                profileVisibility: profile.profile_visibility || "everyone",
+              },
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -76,6 +125,8 @@ const ProfileSetup = ({ onComplete = () => {} }: ProfileSetupProps) => {
         interests: userData.interests,
         duration_of_stay: userData.duration,
         availability_status: userData.availability,
+        current_city: userData.currentLocation.city,
+        current_country: userData.currentLocation.country,
         show_location: userData.privacySettings.showLocation,
         appear_offline: userData.privacySettings.appearOffline,
         profile_visibility: userData.privacySettings.profileVisibility,
@@ -87,7 +138,7 @@ const ProfileSetup = ({ onComplete = () => {} }: ProfileSetupProps) => {
 
       toast({
         title: "Profile updated",
-        description: "Your profile has been successfully updated",
+        description: "Your profile has been successfully created",
       });
 
       onComplete();
@@ -120,7 +171,7 @@ const ProfileSetup = ({ onComplete = () => {} }: ProfileSetupProps) => {
   };
 
   return (
-    <div className="flex items-center justify-center p-4 bg-background">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
       <Card className="w-full max-w-md bg-white">
         <CardHeader>
           <CardTitle className="text-xl font-bold text-center">
@@ -133,6 +184,7 @@ const ProfileSetup = ({ onComplete = () => {} }: ProfileSetupProps) => {
             {step === 2 && "Set your travel interests and availability"}
             {step === 3 && "Control who can see your information"}
           </CardDescription>
+          <Progress value={progress} className="h-1 mt-2" />
         </CardHeader>
 
         <CardContent>
@@ -206,6 +258,42 @@ const ProfileSetup = ({ onComplete = () => {} }: ProfileSetupProps) => {
                     <SelectItem value="ko">Korean</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="current-city">Current City</Label>
+                <Input
+                  id="current-city"
+                  placeholder="Paris"
+                  value={userData.currentLocation.city}
+                  onChange={(e) =>
+                    setUserData({
+                      ...userData,
+                      currentLocation: {
+                        ...userData.currentLocation,
+                        city: e.target.value,
+                      },
+                    })
+                  }
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="current-country">Current Country</Label>
+                <Input
+                  id="current-country"
+                  placeholder="France"
+                  value={userData.currentLocation.country}
+                  onChange={(e) =>
+                    setUserData({
+                      ...userData,
+                      currentLocation: {
+                        ...userData.currentLocation,
+                        country: e.target.value,
+                      },
+                    })
+                  }
+                  disabled={loading}
+                />
               </div>
             </div>
           )}
@@ -330,23 +418,19 @@ const ProfileSetup = ({ onComplete = () => {} }: ProfileSetupProps) => {
                     Others can see your precise location on the map
                   </p>
                 </div>
-                <div className="flex items-center h-5">
-                  <input
-                    type="checkbox"
-                    className="focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded"
-                    checked={userData.privacySettings.showLocation}
-                    onChange={(e) =>
-                      setUserData({
-                        ...userData,
-                        privacySettings: {
-                          ...userData.privacySettings,
-                          showLocation: e.target.checked,
-                        },
-                      })
-                    }
-                    disabled={loading}
-                  />
-                </div>
+                <Switch
+                  checked={userData.privacySettings.showLocation}
+                  onCheckedChange={(checked) =>
+                    setUserData({
+                      ...userData,
+                      privacySettings: {
+                        ...userData.privacySettings,
+                        showLocation: checked,
+                      },
+                    })
+                  }
+                  disabled={loading}
+                />
               </div>
 
               <div className="flex items-center justify-between">
@@ -356,23 +440,19 @@ const ProfileSetup = ({ onComplete = () => {} }: ProfileSetupProps) => {
                     Hide your online status from other users
                   </p>
                 </div>
-                <div className="flex items-center h-5">
-                  <input
-                    type="checkbox"
-                    className="focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded"
-                    checked={userData.privacySettings.appearOffline}
-                    onChange={(e) =>
-                      setUserData({
-                        ...userData,
-                        privacySettings: {
-                          ...userData.privacySettings,
-                          appearOffline: e.target.checked,
-                        },
-                      })
-                    }
-                    disabled={loading}
-                  />
-                </div>
+                <Switch
+                  checked={userData.privacySettings.appearOffline}
+                  onCheckedChange={(checked) =>
+                    setUserData({
+                      ...userData,
+                      privacySettings: {
+                        ...userData.privacySettings,
+                        appearOffline: checked,
+                      },
+                    })
+                  }
+                  disabled={loading}
+                />
               </div>
 
               <div className="flex items-center justify-between">
