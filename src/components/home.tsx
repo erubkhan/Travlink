@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import UserOnboarding from "./Auth/UserOnboarding";
 import ProfileSetup from "./Profiles/ProfileSetup";
 
@@ -7,6 +8,8 @@ const Home = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -31,9 +34,14 @@ const Home = () => {
             setIsAuthenticated(true);
             setShowProfileSetup(true);
           }
+        }else{
+          setIsAuthenticated(false);
+          setShowProfileSetup(false);
         }
       } catch (error) {
         console.error("Session check error:", error);
+        setIsAuthenticated(false);
+        setShowProfileSetup(false);
       } finally {
         setLoading(false);
       }
@@ -49,7 +57,9 @@ const Home = () => {
 
   const handleProfileSetupComplete = () => {
     setShowProfileSetup(false);
+    navigate("/maps");
   };
+
 
   if (loading) {
     return (
