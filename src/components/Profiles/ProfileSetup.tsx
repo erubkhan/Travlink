@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,8 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -16,14 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronRight, ChevronLeft } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { useToast } from "@/components/ui/use-toast";
-import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface ProfileSetupProps {
   onComplete?: () => void;
@@ -141,6 +141,7 @@ const ProfileSetup = ({ onComplete = () => {} }: ProfileSetupProps) => {
         description: "Your profile has been successfully created",
       });
 
+      console.log("Calling onComplete");
       onComplete();
     } catch (error: any) {
       toast({
