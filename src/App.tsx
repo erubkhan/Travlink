@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Route, Routes, useRoutes } from "react-router-dom";
 import routes from "tempo-routes";
 import Home from "./components/home";
-import Maps from "./components/TravelerMap";
+import Maps from "./components/Map/TravelerMap";
 
 function App() {
   return (
